@@ -20,7 +20,7 @@ const app = express();
 
 // Configure CORS to allow requests from Vercel frontend
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://book-nest-frontend-five.vercel.app/'],
+  origin: ['http://localhost:5173', 'https://book-nest-frontend-five.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
