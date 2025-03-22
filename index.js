@@ -18,9 +18,26 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Configure CORS to allow requests from Vercel frontend
+// Configure CORS to allow requests from both local and production frontend
+const allowedOrigins = [
+  'http://localhost:5173',              // Local Vite development server
+  'http://localhost:3000',              // Alternative local development port
+  'https://book-nest-frontend-five.vercel.app', // Production Vercel URL
+  // Add any other domains where your frontend might be hosted
+];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://book-nest-frontend-five.vercel.app'],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.log('Blocked by CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
@@ -36,10 +53,16 @@ const MOCK_EMAIL_SENDING = false;
 app.post('/api/admin/validate', (req, res) => {
     const { adminKey } = req.body;
     
+    console.log('Admin key validation attempt');
+    console.log('Received key:', adminKey);
+    console.log('Expected key from env:', process.env.ADMIN_SECRET_KEY);
+    
     // Check if the provided key matches the one in .env
     if (adminKey === process.env.ADMIN_SECRET_KEY) {
+        console.log('Admin key validation successful');
         return res.status(200).json({ valid: true });
     } else {
+        console.log('Admin key validation failed');
         return res.status(200).json({ valid: false });
     }
 });
@@ -292,6 +315,7 @@ app.put('/user/change-password', async (req, res) => {
 
 const PORT = process.env.PORT || 4002;
 const URI = process.env.MONGODB_URI;
+console.log("Connecting to MongoDB:", URI);
 
 // Add a health check endpoint for Render
 app.get('/health', (req, res) => {
@@ -303,10 +327,10 @@ app.get('/', (req, res) => {
   res.status(200).send('BookNest API is running. Visit /book to get all books.');
 });
 
-// Connect to MongoDB
+// Connect to MongoDB with database name included in the URI
 mongoose.connect(URI)
   .then(() => {
-    console.log("Connected to MongoDB");
+    console.log("Connected to MongoDB successfully");
     // Only start the server after successful database connection
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
